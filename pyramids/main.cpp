@@ -2,7 +2,7 @@
 
 using namespace std;
 
-void left_pyramid()
+void simple_pyramid()
 {
     int input_val;
     cout<<"Enter the height of Pyramid: ";
@@ -19,7 +19,7 @@ void left_pyramid()
 };
 
 
-void right_pyramid()
+void flipped_simple_pyramid()
 {
     int height, space;
     cout<<"Enter the height of Pyramid: ";
@@ -42,10 +42,104 @@ void right_pyramid()
     }
 };
 
+void inverted_pyramid()
+{
+    unsigned int height, i, j; 
+    cout<<"Enter the height of Pyramid: ";
+    cin>>height;
+   
+    for(i = height; i >= 1; -- i)
+    {
+        for(j = 1; j <= i; ++j)
+        {
+            cout<<"*";
+        };
+        cout<<"\n";
+
+    };
+
+};
+
+void flipped_inverted_pyramid()
+{
+    
+    unsigned int height, i, j, k, space; 
+    cout<<"Enter the height of Pyramid: ";
+    cin>>height;
+
+    for(i = height; i >= 1; --i)
+    {
+        space = height - i;
+        for(j = 0; j < space; ++j)
+        {
+            cout<<" ";
+        }
+        for(k = 0; k < i; ++k)
+        {
+            cout<<"*";
+        }
+        cout<<"\n";
+        
+    };
+
+};
+
+void triangle()
+{
+
+    unsigned int height, i, j, k, max_space; 
+    cout<<"Enter the height of Pyramid: ";
+    cin>>height;
+
+    max_space =  height;
+
+    for(i = height; i >= 1; --i)
+    {
+        
+        for(k = 1; k <= max_space; ++k )
+        {
+            if(k < i)
+            {
+                cout<<" ";
+            }
+            else 
+            {
+                if(i % 2 != 0)
+                {
+                    if(k % 2 != 0)
+                    {
+                        cout<<"*";
+                    }else
+                    {
+                        cout<<" ";
+                    }
+                }
+                else if(i % 2 == 0)
+                {
+                    if(k % 2 == 0)
+                    {
+                        cout<<"*";
+                    }else
+                    {
+                        cout<<" ";
+                    }
+                }
+                
+            };
+            
+        };
+        cout<<"\n";
+        ++max_space;
+    }
+
+};
+
 int main()
 {
-    left_pyramid();
-    right_pyramid();
+    // inverted_pyramid();
+    // flipped_inverted_pyramid();
+    triangle();
+  
 
     return 0;
 }
