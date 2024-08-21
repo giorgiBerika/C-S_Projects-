@@ -4,15 +4,15 @@
 #include <map>
 #include <array>
 
-std::string random_pc_weapon(std::map<int, std::string> weapons_map )
+std::string getRandomPcWeapon(const std::map<int, std::string>&  weaponsMap)
 {
     std::random_device rd;
-    int rand_num = rd() % 3;
+    int rand_num = rd() % weaponsMap.size();
 
-    return weapons_map[rand_num];
+    return weaponsMap.at(rand_num);
 }; 
 
-std::string to_lower(std::string word)
+std::string toLowerCase(std::string word)
 {
     for (char& c : word)
     {
@@ -23,49 +23,27 @@ std::string to_lower(std::string word)
 };
 
 
-std::string win_logic(std:: string user, std::string pc)
+std::string determineWinner(std:: string user, std::string pc,
+                      unsigned int &user_p, unsigned int &pc_p,
+                        const std::map<std::string, std::string>& winConditions)
 {
-    user = to_lower(user);
-    pc = to_lower(pc);
+    user = toLowerCase(user);
+    pc = toLowerCase(pc);
 
     std::string winner;
 
-    if (user == pc)
+    if(user == pc)
     {
-        winner =  "Tie!";
+        winner = "Tie!";
     }
-    else if(user == "rock")
+    else if (winConditions.at(user) == pc)
     {
-        if(pc == "paper")
-        {
-            winner =  "Pc";
-        }
-        else if (pc == "scissor")
-        {
-            winner = "User";
-        }
-    }
-    else if(user == "paper")
+        ++user_p;
+        winner = "User";
+    }else 
     {
-        if(pc == "rock")
-        {
-            winner =  "User";
-        }
-        else if (pc == "scissor")
-        {
-            winner =  "Pc";
-        }
-    }
-    else if(user == "scissor")
-    {
-        if(pc == "rock")
-        {
-            winner = "Pc";
-        }
-        else if (pc == "paper")
-        {
-            winner =  "User";
-        }
+        ++pc_p;
+        winner = "Pc";
     }
 
     winner += (winner == "Tie!") ? " " : " Wins!";
@@ -73,12 +51,12 @@ std::string win_logic(std:: string user, std::string pc)
     return winner;
 };
 
-bool valid_input(std::string input, std::array<std::string, 3> arr)
+bool isValidInput(std::string input, std::array<std::string, 3> arr)
 {
-  // std::string weapons
+  
     bool res = false;
     int size = arr.size();
-    input = to_lower(input);
+    input = toLowerCase(input);
 
     for(int i = 0; i < size; ++i)
     {
@@ -95,11 +73,20 @@ bool valid_input(std::string input, std::array<std::string, 3> arr)
 int main()
 {
     // Map of the weapons
-    std::map<int, std::string> wepons_map;
+    std::map<int, std::string> weaponsMap;
 
-    wepons_map[0] = "Rock";
-    wepons_map[1] = "Paper";
-    wepons_map[2] = "Scissor";
+    weaponsMap[0] = "Rock";
+    weaponsMap[1] = "Paper";
+    weaponsMap[2] = "Scissor";
+
+    // Map of wind conditions
+    std::map<std::string, std::string> winConditions = {
+
+        {"rock", "scissor"},
+        {"paper", "rock"},
+        {"scissor", "paper"}
+    };
+
     // Array of weapons
     std::string weapons_arr[] = {"rock", "paper", "scissor"};
     std::array<std::string, 3> arr = {"rock", "paper", "scissor"};
@@ -111,6 +98,9 @@ int main()
 
     std::string user_input, pc_weapon;
     bool game_running = true;
+    // Points
+    // unsigned int user_points = 0, pc_points = 0;
+    unsigned int user_points = 0, pc_points = 0;
 
     // First input
     
@@ -121,20 +111,26 @@ int main()
     {
         // Quit mode/event
         if (user_input == "Quit")
-            // game_running = false;
+        {
+
+         
+            // Call for points
+            std::cout<<"\n-----------\n";
+            std::cout<<"User Points: "<<user_points<<"   "<<
+                        "Pc Points:  "<<pc_points<<std::endl;
             break;
-        
+        };        
         // Pc choose
-        pc_weapon = random_pc_weapon(wepons_map);
+        pc_weapon = getRandomPcWeapon(weaponsMap);
         
 
         // Result outPut
-        if(valid_input(user_input, arr))
+        if(isValidInput(user_input, arr))
         {
             std::cout<<"User: "<<user_input<<" ---- "
                     "Pc: "<<pc_weapon<<std::endl;
 
-            std::cout<<win_logic(user_input, pc_weapon)<<"\n\n";
+            std::cout<<determineWinner(user_input, pc_weapon, user_points, pc_points, winConditions)<<"\n\n";
         }
         else
         {
