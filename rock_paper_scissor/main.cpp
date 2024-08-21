@@ -1,3 +1,4 @@
+// Include all extra necessary library types
 #include <iostream>
 #include <random>
 #include <string>
@@ -5,6 +6,7 @@
 #include <array>
 #include <algorithm>
 
+// Function that returns randomly chosen weapon for PC 
 std::string getRandomPcWeapon(const std::map<int, std::string>&  weaponsMap)
 {
     std::random_device rd;
@@ -13,13 +15,14 @@ std::string getRandomPcWeapon(const std::map<int, std::string>&  weaponsMap)
     return weaponsMap.at(rand_num);
 }; 
 
+// Function to transform inputed value to lowercase string
 std::string toLowerCase(std::string word)
 {
     std::transform(word.begin(), word.end(), word.begin(), ::tolower);
     return word;
 };
 
-
+// Function to determine the winner according to game rules
 std::string determineWinner(std:: string user, std::string pc,
                       unsigned int &user_p, unsigned int &pc_p,
                         const std::map<std::string, std::string>& winConditions)
@@ -48,6 +51,7 @@ std::string determineWinner(std:: string user, std::string pc,
     return winner;
 };
 
+// Function prove validation of the input value
 bool isValidInput(std::string input, std::array<std::string, 3> arr)
 {
   
@@ -67,6 +71,7 @@ bool isValidInput(std::string input, std::array<std::string, 3> arr)
     return res;
 };
 
+// Main function
 int main()
 {
     // Map of the weapons
@@ -76,7 +81,7 @@ int main()
     weaponsMap[1] = "Paper";
     weaponsMap[2] = "Scissor";
 
-    // Map of wind conditions
+    // Map of win conditions
     std::map<std::string, std::string> winConditions = {
 
         {"rock", "scissor"},
@@ -85,7 +90,7 @@ int main()
     };
 
     // Array of weapons
-    std::string weapons_arr[] = {"rock", "paper", "scissor"};
+
     std::array<std::string, 3> arr = {"rock", "paper", "scissor"};
 
     // Welcome text
@@ -93,19 +98,19 @@ int main()
                 "Rock Paper Scissor! --"<<std::endl;
     std::cout<<"----------------------------------------------\n"<<std::endl;
 
+    // Game variables
     std::string user_input, pc_weapon;
     bool game_running = true;
     // Points
-    // unsigned int user_points = 0, pc_points = 0;
     unsigned int user_points = 0, pc_points = 0;
 
-    // First input
     
     // Game loop
     while (game_running)
     {
         std::cout<<"Play: ";
         std::cin>>user_input;
+
         // Quit mode/event
         if (user_input == "Quit")
         {
@@ -131,7 +136,6 @@ int main()
         {
             std::cout<<"Bad Input!\n";
         }
-        
         
     };
 
