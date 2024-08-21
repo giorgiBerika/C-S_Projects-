@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <array>
+#include <algorithm>
 
 std::string getRandomPcWeapon(const std::map<int, std::string>&  weaponsMap)
 {
@@ -14,11 +15,7 @@ std::string getRandomPcWeapon(const std::map<int, std::string>&  weaponsMap)
 
 std::string toLowerCase(std::string word)
 {
-    for (char& c : word)
-    {
-        c = std::towlower(c);
-    }
-
+    std::transform(word.begin(), word.end(), word.begin(), ::tolower);
     return word;
 };
 
@@ -104,16 +101,14 @@ int main()
 
     // First input
     
-    std::cout<<"Play: ";
-    std::cin>>user_input;
     // Game loop
     while (game_running)
     {
+        std::cout<<"Play: ";
+        std::cin>>user_input;
         // Quit mode/event
         if (user_input == "Quit")
         {
-
-         
             // Call for points
             std::cout<<"\n-----------\n";
             std::cout<<"User Points: "<<user_points<<"   "<<
@@ -128,7 +123,7 @@ int main()
         if(isValidInput(user_input, arr))
         {
             std::cout<<"User: "<<user_input<<" ---- "
-                    "Pc: "<<pc_weapon<<std::endl;
+                    "Pc: "<<pc_weapon<<"\n";
 
             std::cout<<determineWinner(user_input, pc_weapon, user_points, pc_points, winConditions)<<"\n\n";
         }
@@ -138,9 +133,6 @@ int main()
         }
         
         
-        std::cout<<"Play: ";
-        std::cin>>user_input;
-
     };
 
     return 0;
