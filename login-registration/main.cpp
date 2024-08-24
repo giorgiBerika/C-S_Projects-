@@ -91,6 +91,33 @@ bool isRegistered(const string filePath, const string login )
 
 };
 
+bool isValidPassword(const string &password)
+{
+    auto passSize = password.size();
+    unsigned short passSizeLimit(5);
+
+    if(passSize < passSizeLimit)
+    {
+        return false;
+    }
+    else
+    {
+        string prohibitedSymb("!@#$?");
+        
+        for(const char c: password)
+        {
+            if(prohibitedSymb.find(c) != string::npos)
+            {
+                return false;
+            }
+        }
+        
+
+    }
+    return true;
+
+};
+
 void registrationLogic() {
 
     string login, password, loginLine;
@@ -98,9 +125,17 @@ void registrationLogic() {
     cout<<"Start Registration: \n";
     cout<<"Create login: ";
     cin>>login;
+
+    cout<<"\nPass: At least 5 characters.\n"
+          "Do NOT use: !, @, #, $, ?\n";
     cout<<"Create password: ";
     cin>>password;
-    
+
+    while(!isValidPassword(password))
+    {
+        cout<<"Bad password, Try other: ";
+        cin>>password;
+    }
 
     // Open file for Appending/Writing
     ofstream outFile("data.txt", ios::app);
@@ -165,6 +200,7 @@ void loginLogic() {
         else
         {
             cout<<"Wrong login or password, try again!"<<endl;
+            cout<<"Or try Registration\n\n";
         }
 
     }
