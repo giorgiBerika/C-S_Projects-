@@ -1,53 +1,11 @@
-// #include <iostream>
-// #include <fstream>
-// #include <string>
-// #include <deque>
-
-// using namespace std;
-
-// int main()
-// {
-//     ofstream outFile("data.txt");
-
-//     string login, password;
-
-//     if (outFile.is_open())
-//     {
-//         cout<<"Login: ";
-//         cin>>login;
-//         cout<<"password: ";
-//         cin>>password;
-
-//         outFile<<login<<"\n";
-//         outFile<<password;
-
-//         outFile.close();
-//     }
-
-
-//     // Reading from the file
-
-//     ifstream inFile("data.txt");
-//     string data;
-
-//     if (inFile.is_open())
-//     {
-//         while(getline(inFile, data))
-//         {
-//             cout<<"Info: "<<data<<endl;
-//         }
-//         inFile.close();
-//     }
-
-
-//     return 0;
-// }
-
-
 #include <iostream>
 #include <fstream>
 #include <string>
+
 using namespace std;
+
+const string fileName = "data.txt";
+const int MIN_PASSWORD_LENGTH = 5;
 
 void welcomeText() {
     string dashLine(50, '-'), smallDashLine(21, '-');
@@ -63,13 +21,13 @@ void welcomeText() {
 
 };
 
-bool isRegistered(const string filePath, const string login )
+bool isRegistered(const string& filePath, const string& login )
 {   
     ifstream inFile(filePath);
 
     if(!inFile)
     {   
-        cerr << "Unable to open file";
+        throw runtime_error("Unable to open file");
     }
     else
     {
@@ -91,10 +49,10 @@ bool isRegistered(const string filePath, const string login )
 
 };
 
-bool isValidPassword(const string &password)
+bool isValidPassword(const string& password)
 {
     auto passSize = password.size();
-    unsigned short passSizeLimit(5);
+    unsigned short passSizeLimit(MIN_PASSWORD_LENGTH);
 
     if(passSize < passSizeLimit)
     {
@@ -138,17 +96,19 @@ void registrationLogic() {
     }
 
     // Open file for Appending/Writing
-    ofstream outFile("data.txt", ios::app);
+    ofstream outFile(fileName, ios::app);
 
     if(!outFile)
     {
-        cerr << "Unable to open file";
+        throw runtime_error("Unable to open file");
     }
     else
     {
-        if(isRegistered(("data.txt"), login))
+        if(isRegistered((fileName), login))
         {
-            cout<<"Login exist!"<<endl;
+            cout<<"Login exist!"
+                " Try Register other Login!"<<endl;
+
         }
         else
         {
@@ -173,11 +133,16 @@ void loginLogic() {
 
     // Open file for reading
 
-    ifstream inFile("data.txt");
+    ifstream inFile(fileName);
 
     if(!inFile)
     {
-        cerr << "Unable to open file";
+        throw runtime_error("Unable to open file");
+    }
+    else if(inputLogin.empty() || inputPassword.empty())
+    {
+        cout << "Login and password cannot be empty!" <<endl;
+        return;
     }
     else
     {
