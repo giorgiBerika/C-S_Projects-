@@ -48,13 +48,15 @@ class Student
 
         void inputStudentInfo()
         {
+            std::cin.ignore();
             std::cout << "Enter student Name: ";
-            // std::cin >> name;
             getline(std::cin, name);
             std::cout << "Enter student Age: ";
             std::cin >> age;
+
+            std::cin.ignore(); //Ignore the leftover newline after entering age
+
             std::cout << "Enter student Major: ";
-            // std::cin >> major;
             getline(std::cin, major);
         }
 
@@ -71,9 +73,15 @@ class Student
 
 };
 
+void saveNewRecord(std::unique_ptr<sql::Statement>& stmt)
+{
+        Student student;
+        student.inputStudentInfo();
+        student.saveToDatabase(stmt);
+};
+
 int main() {
 
-    menuInfo();
 
     try {
         // ---------Connecting to Databse ---------------
@@ -94,9 +102,39 @@ int main() {
         std::unique_ptr<sql::Statement> stmt(con->createStatement());
         
     //    -----------------------------------------------
-        Student student;
-        student.inputStudentInfo();
-        student.saveToDatabase(stmt);
+
+        int optNumber;
+        bool systemWorking(true);
+        menuInfo();
+
+        while (systemWorking)
+        {
+            std::cout<<"\nOption: ";
+            std::cin >> optNumber;
+
+            switch (optNumber)
+            {
+            case 1:
+                saveNewRecord(stmt);
+                break;
+            
+            case 2:
+                /* code */
+                break;
+            case 3:
+                /* code */
+                break;
+            case 4:
+                /* code */
+                break;
+            case 5:
+                systemWorking = false;
+                break;
+            }
+            
+        }
+
+        
 
         // Execute a query and retrieve the result
         std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT * FROM students"));
