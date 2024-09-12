@@ -99,6 +99,26 @@ void searchRecord(std::unique_ptr<sql::Statement>& stmt)
     }
 };
 
+void fullList(std::unique_ptr<sql::Statement>& stmt)
+{
+    std::cout << "Full List of Students: \n" << std::endl;
+
+    std::string listQuery = "SELECT * FROM students";
+
+    std::unique_ptr<sql::ResultSet> res(stmt->executeQuery(listQuery));
+
+    int count(1);
+    while (res->next())
+    {   
+        std::cout << count << ")\n";
+        std::cout << "Name: " << res->getString("name") << "\n";
+        std::cout << "Age: " << res->getString("age") << "\n";
+        std::cout << "Major: " << res->getString("major") << "\n\n";
+
+        ++count;
+    } 
+}
+
 void deleteRecord(std::unique_ptr<sql::Statement>& stmt)
 {   
     std::string studName;
@@ -164,7 +184,7 @@ int main() {
                 searchRecord(stmt);
                 break;
             case 3:
-                /* code */
+                fullList(stmt);
                 break;
             case 4:
                 /* code */
