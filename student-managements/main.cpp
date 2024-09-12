@@ -30,9 +30,10 @@ void menuInfo()
 
     printMenuOption(1, "Enter New Record");
     printMenuOption(2, "Search Record");
-    printMenuOption(3, "Modify Record");
-    printMenuOption(4, "Delete Record");
-    printMenuOption(5, "Exit");
+    printMenuOption(3, "See Full list");
+    printMenuOption(4, "Modify Record");
+    printMenuOption(5, "Delete Record");
+    printMenuOption(6, "Exit");
       
     std::cout<<"\n";
     std::cout<<fullDashLine<<std::endl;
@@ -84,7 +85,7 @@ void saveNewRecord(std::unique_ptr<sql::Statement>& stmt)
 void searchRecord(std::unique_ptr<sql::Statement>& stmt)
 {
     std::string studentName;
-    std::cout << "Enter the student's name: ";
+    std::cout << "Enter student's name: ";
     std::cin.ignore();
     getline(std::cin, studentName);
     std::cout<<"Result: \n\n";
@@ -98,7 +99,28 @@ void searchRecord(std::unique_ptr<sql::Statement>& stmt)
     }
 };
 
+void deleteRecord(std::unique_ptr<sql::Statement>& stmt)
+{   
+    std::string studName;
+    std::cout<<"Enter student's name: ";
+    std::cin.ignore();
+    getline(std::cin, studName);
 
+    std::string deleteQuery = "DELETE FROM students WHERE name = '" + studName +"'";
+
+    int affectdRows = stmt->executeUpdate(deleteQuery);
+
+    if(affectdRows > 0)
+    {
+        std::cout << "Record Deleted Successfully.\n" << std::endl;
+    }
+    else
+    {
+        std::cout << "No Matching Record Found.\n" << std::endl;
+    }
+
+
+}
 
 int main() {
 
@@ -148,6 +170,9 @@ int main() {
                 /* code */
                 break;
             case 5:
+                deleteRecord(stmt);
+                break;
+            case 6:
                 systemWorking = false;
                 break;
             }
