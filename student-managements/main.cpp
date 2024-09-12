@@ -5,6 +5,7 @@
 #include <cppconn/statement.h>
 #include <cppconn/resultset.h>
 #include <cppconn/exception.h>
+// #include <cppconn/prepared_statement.h>
 
 #include <string>
 
@@ -80,6 +81,25 @@ void saveNewRecord(std::unique_ptr<sql::Statement>& stmt)
         student.saveToDatabase(stmt);
 };
 
+void searchRecord(std::unique_ptr<sql::Statement>& stmt)
+{
+    std::string studentName;
+    std::cout << "Enter the student's name: ";
+    std::cin.ignore();
+    getline(std::cin, studentName);
+    std::cout<<"Result: \n\n";
+
+    std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT * FROM students WHERE name = '"+studentName+"'"));
+    // Process the result set
+    while (res->next()) {
+        std::cout << "Name: " << res->getString("name") << "\n";
+        std::cout << "Age: " << res->getString("age") << "\n"; 
+        std::cout << "Major: " << res->getString("major") << std::endl;
+    }
+};
+
+
+
 int main() {
 
 
@@ -119,7 +139,7 @@ int main() {
                 break;
             
             case 2:
-                /* code */
+                searchRecord(stmt);
                 break;
             case 3:
                 /* code */
@@ -132,18 +152,6 @@ int main() {
                 break;
             }
             
-        }
-
-        
-
-        // Execute a query and retrieve the result
-        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT * FROM students"));
-
-        // Process the result set
-        while (res->next()) {
-            std::cout << "Name: " << res->getString("name") << "\n";
-            std::cout << "Age: " << res->getString("age") << "\n"; 
-            std::cout << "Major: " << res->getString("major") << std::endl;
         }
 
     } catch (sql::SQLException &e) {
