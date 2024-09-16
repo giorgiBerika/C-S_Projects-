@@ -5,7 +5,6 @@
 #include <cppconn/statement.h>
 #include <cppconn/resultset.h>
 #include <cppconn/exception.h>
-// #include <cppconn/prepared_statement.h>
 
 #include <string>
 
@@ -142,6 +141,37 @@ void deleteRecord(std::unique_ptr<sql::Statement>& stmt)
 
 }
 
+void updateRecord(std::unique_ptr<sql::Statement>& stmt)
+{
+    std::string studName, dataName, newData, updateQuery;
+ 
+    std::cout << "Enter the EXACT name of the student: ";
+    std::cin.ignore();
+    getline(std::cin, studName);
+
+    std::cout << "Enter the Data Name you want to update: ";
+    getline(std::cin, dataName);
+
+
+    std::cout << "Enter new " + dataName +": ";
+    getline(std::cin, newData);
+
+
+    updateQuery = "UPDATE students SET " + dataName + " = '" + newData + "' WHERE name = '" + studName +"'";
+
+    int affectedRows = stmt->executeUpdate(updateQuery);
+
+    if (affectedRows > 0)
+    {
+        std::cout << "\nRecord has modified!\n" << std::endl;
+    }
+    else
+    {
+        std::cout << "\nNo matching record found!\n" << std::endl;
+    }
+
+}
+
 int main() {
 
 
@@ -187,7 +217,7 @@ int main() {
                 fullList(stmt);
                 break;
             case 4:
-                /* code */
+                updateRecord(stmt);
                 break;
             case 5:
                 deleteRecord(stmt);
