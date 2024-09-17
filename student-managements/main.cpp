@@ -5,7 +5,9 @@
 #include <cppconn/statement.h>
 #include <cppconn/resultset.h>
 #include <cppconn/exception.h>
+#include <cppconn/prepared_statement.h>
 
+#include <limits>
 #include <string>
 
 // Constants
@@ -40,6 +42,30 @@ void menuInfo()
     std::cout<<fullDashLine<<std::endl;
 };
 
+// Utitlity to clear input buffer and handle invalid input
+
+void clearInput()
+{
+    std::cin.clear();
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    
+};
+
+// Input Validation for integers (age)
+
+int getValidInt(const std::string &prompt)
+{
+    int value;
+    std::cout << prompt;
+    while(!(std::cin >> value))
+    {
+        clearInput();
+        std::cout << "Invalid input. " << prompt;
+    }
+    clearInput();
+    return value;
+}
+
 class Student
 {
     public:
@@ -49,62 +75,77 @@ class Student
 
         void inputStudentInfo()
         {
-            std::cin.ignore();
+            
             std::cout << "Enter student Name: ";
-            getline(std::cin, name);
-            std::cout << "Enter student Age: ";
-            std::cin >> age;
+            getline(std::cin, name);    // Name input
+            
+            age = getValidInt("Enter student Age: "); // Age input
 
-            std::cin.ignore(); //Ignore the leftover newline after entering age
-
-            std::cout << "Enter student Major: ";
-            getline(std::cin, major);
+            std::cout << "Enter student Major: "; 
+            getline(std::cin, major); // Major input
         }
 
 
-        void saveToDatabase (std::unique_ptr<sql::Statement>& stmt)
+        void saveToDatabase (std::unique_ptr<sql::Connection>& con)
         {
-            std::string query = "INSERT INTO students (name, age, major) VALUES ('" + 
-                        name +"', '" + std::to_string(age) + "', '"+ major + "')";
 
-            stmt->execute(query);
+            std::unique_ptr<sql::PreparedStatement> pstmt(
+                con->prepareStatement("INSERT INTO students (name, age, major) VALUES (?, ?, ?)"));
+
+            pstmt->setString(1, name);
+            pstmt->setInt(2, age);
+            pstmt->setString(3, major);
+            pstmt->executeUpdate();
             std::cout << "Student data saved to database." << std::endl;
+
         }    
         
 
 };
 
-void saveNewRecord(std::unique_ptr<sql::Statement>& stmt)
+void saveNewRecord(std::unique_ptr<sql::Connection>& con)
 {
         Student student;
         student.inputStudentInfo();
-        student.saveToDatabase(stmt);
+        student.saveToDatabase(con);
 };
 
-void searchRecord(std::unique_ptr<sql::Statement>& stmt)
+void searchRecord(std::unique_ptr<sql::Connection>& con)
 {
     std::string studentName;
+    
     std::cout << "Enter student's name: ";
-    std::cin.ignore();
     getline(std::cin, studentName);
-    std::cout<<"Result: \n\n";
 
-    std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT * FROM students WHERE name = '"+studentName+"'"));
+    std::unique_ptr<sql::PreparedStatement> pstmt(
+        con->prepareStatement("SELECT * FROM students WHERE name = ?"));
+
+    pstmt->setString(1, studentName);
+
+
+    std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
     // Process the result set
-    while (res->next()) {
+    
+    if(res->next())
+    {
+        std::cout << "Result:\n";
         std::cout << "Name: " << res->getString("name") << "\n";
-        std::cout << "Age: " << res->getString("age") << "\n"; 
+        std::cout << "Age: " << res->getInt("age") << "\n";
         std::cout << "Major: " << res->getString("major") << std::endl;
+    } else {
+        std::cout << "No matching student found.\n";
     }
+    
 };
 
-void fullList(std::unique_ptr<sql::Statement>& stmt)
+// Full List of Students
+void fullList(std::unique_ptr<sql::Connection>& con)
 {
     std::cout << "Full List of Students: \n" << std::endl;
 
-    std::string listQuery = "SELECT * FROM students";
-
-    std::unique_ptr<sql::ResultSet> res(stmt->executeQuery(listQuery));
+    std::unique_ptr<sql::Statement> stmt(con->createStatement());
+    
+    std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT * FROM students"));
 
     int count(1);
     while (res->next())
@@ -118,16 +159,20 @@ void fullList(std::unique_ptr<sql::Statement>& stmt)
     } 
 }
 
-void deleteRecord(std::unique_ptr<sql::Statement>& stmt)
+// Delete Record
+void deleteRecord(std::unique_ptr<sql::Connection>& con)
 {   
     std::string studName;
+    
     std::cout<<"Enter student's name: ";
-    std::cin.ignore();
     getline(std::cin, studName);
 
-    std::string deleteQuery = "DELETE FROM students WHERE name = '" + studName +"'";
+    std::unique_ptr<sql::PreparedStatement> pstmt(
+        con->prepareStatement("DELETE FROM students WHERE name = ?"));
+    pstmt->setString(1, studName);
 
-    int affectdRows = stmt->executeUpdate(deleteQuery);
+    int affectdRows = pstmt->executeUpdate();
+
 
     if(affectdRows > 0)
     {
@@ -141,25 +186,29 @@ void deleteRecord(std::unique_ptr<sql::Statement>& stmt)
 
 }
 
-void updateRecord(std::unique_ptr<sql::Statement>& stmt)
+void updateRecord(std::unique_ptr<sql::Connection>& con)
 {
-    std::string studName, dataName, newData, updateQuery;
- 
-    std::cout << "Enter the EXACT name of the student: ";
-    std::cin.ignore();
+    std::string studName, field, newValue;
+    
+    std::cout << "Enter student's exact name: ";
     getline(std::cin, studName);
 
-    std::cout << "Enter the Data Name you want to update: ";
-    getline(std::cin, dataName);
+    std::cout << "Which field would you like to update? (name/age/major): ";
+    getline(std::cin, field);
 
 
-    std::cout << "Enter new " + dataName +": ";
-    getline(std::cin, newData);
+    std::cout << "Enter new " + field +": ";
+    getline(std::cin, newValue);
 
 
-    updateQuery = "UPDATE students SET " + dataName + " = '" + newData + "' WHERE name = '" + studName +"'";
+    std::string updateQuery = "UPDATE students SET " + field + " = ? WHERE name = ?";
 
-    int affectedRows = stmt->executeUpdate(updateQuery);
+    std::unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement(updateQuery));
+
+    pstmt->setString(1, newValue);
+    pstmt->setString(2, studName);
+
+    int affectedRows = pstmt->executeUpdate();
 
     if (affectedRows > 0)
     {
@@ -190,8 +239,7 @@ int main() {
         // Select the database to use
         con->setSchema("students_list");
 
-        // Create a statement object
-        std::unique_ptr<sql::Statement> stmt(con->createStatement());
+        
         
     //    -----------------------------------------------
 
@@ -201,30 +249,31 @@ int main() {
 
         while (systemWorking)
         {
-            std::cout<<"\nOption: ";
-            std::cin >> optNumber;
+            optNumber = getValidInt("\nOption: ");
 
             switch (optNumber)
             {
             case 1:
-                saveNewRecord(stmt);
+                saveNewRecord(con);
                 break;
             
             case 2:
-                searchRecord(stmt);
+                searchRecord(con);
                 break;
             case 3:
-                fullList(stmt);
+                fullList(con);
                 break;
             case 4:
-                updateRecord(stmt);
+                updateRecord(con);
                 break;
             case 5:
-                deleteRecord(stmt);
+                deleteRecord(con);
                 break;
             case 6:
                 systemWorking = false;
                 break;
+            default:
+                std::cout << "Invalid option, please choose againg." << std::endl;
             }
             
         }
