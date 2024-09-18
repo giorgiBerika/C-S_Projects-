@@ -9,12 +9,24 @@
 
 #include <limits>
 #include <string>
+#include <vector>
+#include <sstream>
+#include <iomanip>
+
+#include <openssl/evp.h>
+#include <openssl/aes.h>
+#include <openssl/rand.h>
+
+
 
 // Constants
 
 const std::string tabSpace(20, ' ');
 const std::string dashBar(29, '-');
 const std::string fullDashLine = tabSpace + dashBar;
+
+unsigned char key[33] = "01234567890123456789012345678901";  // 256-bit key
+unsigned char iv[17]  = "0123456789012345";  // 128-bit IV
 
 // Print Menu functions ///
 void printMenuOption(int optionNumber, const std::string &description)
@@ -41,6 +53,61 @@ void menuInfo()
     std::cout<<tabSpace<<"Choose Option: [1/2/3/4/5]"<<std::endl;
     std::cout<<fullDashLine<<std::endl;
 };
+// Encryption Function
+std::vector<unsigned char> encrypt(const std::string& plaintext, const unsigned char* key, const unsigned char* iv) {
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
+
+    std::vector<unsigned char> ciphertext(plaintext.size() + AES_BLOCK_SIZE);
+    int len;
+
+    EVP_EncryptUpdate(ctx, ciphertext.data(), &len, reinterpret_cast<const unsigned char*>(plaintext.c_str()), plaintext.size());
+    int ciphertext_len = len;
+
+    EVP_EncryptFinal_ex(ctx, ciphertext.data() + len, &len);
+    ciphertext_len += len;
+    ciphertext.resize(ciphertext_len);
+
+    EVP_CIPHER_CTX_free(ctx);
+
+    return ciphertext;
+};
+
+// Decryption Function
+std::string decrypt(const std::vector<unsigned char>& ciphertext, const unsigned char* key, const unsigned char* iv) {
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
+
+    std::vector<unsigned char> plaintext(ciphertext.size());
+    int len;
+
+    EVP_DecryptUpdate(ctx, plaintext.data(), &len, ciphertext.data(), ciphertext.size());
+    int plaintext_len = len;
+
+    EVP_DecryptFinal_ex(ctx, plaintext.data() + len, &len);
+    plaintext_len += len;
+    plaintext.resize(plaintext_len);
+
+    EVP_CIPHER_CTX_free(ctx);
+
+    return std::string(plaintext.begin(), plaintext.end());
+};
+std::string toHex(const std::vector<unsigned char>& data) {
+    std::ostringstream oss;
+    for (unsigned char c : data) {
+        oss << std::hex << std::setw(2) << std::setfill('0') << (int)c;
+    }
+    return oss.str();
+}
+std::vector<unsigned char> fromHex(const std::string& hexStr) {
+    std::vector<unsigned char> bytes;
+    for (size_t i = 0; i < hexStr.length(); i += 2) {
+        std::string byteString = hexStr.substr(i, 2);
+        unsigned char byte = (unsigned char) strtol(byteString.c_str(), nullptr, 16);
+        bytes.push_back(byte);
+    }
+    return bytes;
+}
 
 // Utitlity to clear input buffer and handle invalid input
 
@@ -53,9 +120,9 @@ void clearInput()
 
 // Input Validation for integers (age)
 
-int getValidInt(const std::string &prompt)
+long getValidInt(const std::string &prompt)
 {
-    int value;
+    long value;
     std::cout << prompt;
     while(!(std::cin >> value))
     {
@@ -71,7 +138,10 @@ class Student
     public:
         std::string name;
         int age;
+        long personal_no;
         std::string major;
+        
+
 
         void inputStudentInfo()
         {
@@ -79,25 +149,41 @@ class Student
             std::cout << "Enter student Name: ";
             getline(std::cin, name);    // Name input
             
-            age = getValidInt("Enter student Age: "); // Age input
+            age = getValidInt("Enter student's Age: "); // Age input
 
             std::cout << "Enter student Major: "; 
             getline(std::cin, major); // Major input
+
+            personal_no = getValidInt("Enter Student's Personal No: ");
         }
 
 
         void saveToDatabase (std::unique_ptr<sql::Connection>& con)
         {
+            
+            std::string ageStr = std::to_string(age);
+            std::string personalNoStr = std::to_string(personal_no);
+            
+
+            std::vector<unsigned char> encryptedMajor = encrypt(major, key, iv);
+            std::vector<unsigned char> encryptedAge = encrypt(ageStr, key, iv);
+            std::vector<unsigned char> encryptedPerNo = encrypt(personalNoStr, key, iv);
+
+            // Convert the encrypted binary data to hexadecimal format
+            std::string hexMajor = toHex(encryptedMajor);
+            std::string hexAge = toHex(encryptedAge);
+            std::string hexPerNo = toHex(encryptedPerNo);
+
 
             std::unique_ptr<sql::PreparedStatement> pstmt(
-                con->prepareStatement("INSERT INTO students (name, age, major) VALUES (?, ?, ?)"));
+                con->prepareStatement("INSERT INTO students (name, age, major, personal_no) VALUES (?, ?, ?, ?)"));
 
             pstmt->setString(1, name);
-            pstmt->setInt(2, age);
-            pstmt->setString(3, major);
+            pstmt->setString(2, hexAge);
+            pstmt->setString(3, hexMajor);
+            pstmt->setString(4, hexPerNo);
             pstmt->executeUpdate();
             std::cout << "Student data saved to database." << std::endl;
-
         }    
         
 
@@ -128,10 +214,25 @@ void searchRecord(std::unique_ptr<sql::Connection>& con)
     
     if(res->next())
     {
-        std::cout << "Result:\n";
+        std::string hexMajor = res->getString("major");
+        std::string hexAge = res->getString("age");
+        std::string hexPersNo = res->getString("personal_no");
+
+        // Decode from hex and then decrypt
+        std::vector<unsigned char> encryptedMajor = fromHex(hexMajor);
+        std::vector<unsigned char> encryptedAge = fromHex(hexAge);
+        std::vector<unsigned char> encryptedPersNo = fromHex(hexPersNo);
+
+        // Original data
+        std::string decryptedMajor = decrypt(encryptedMajor, key, iv);
+        std::string decryptedAge = decrypt(encryptedAge, key, iv);
+        std::string decryptedPersNo = decrypt(encryptedPersNo, key, iv);
+
+        std::cout << "Result:\n\n";
         std::cout << "Name: " << res->getString("name") << "\n";
-        std::cout << "Age: " << res->getInt("age") << "\n";
-        std::cout << "Major: " << res->getString("major") << std::endl;
+        std::cout << "Age: " << decryptedAge << "\n";
+        std::cout << "Major: " << decryptedMajor << "\n";
+        std::cout << "Personal No: " << decryptedPersNo << std::endl;
     } else {
         std::cout << "No matching student found.\n";
     }
@@ -150,10 +251,25 @@ void fullList(std::unique_ptr<sql::Connection>& con)
     int count(1);
     while (res->next())
     {   
+        std::string hexMajor = res->getString("major");
+        std::string hexAge = res->getString("age");
+        std::string hexPersNo = res->getString("personal_no");
+
+        // Decode from hex and then decrypt
+        std::vector<unsigned char> encryptedMajor = fromHex(hexMajor);
+        std::vector<unsigned char> encryptedAge = fromHex(hexAge);
+        std::vector<unsigned char> encryptedPersNo = fromHex(hexPersNo);
+
+        // Original data
+        std::string decryptedMajor = decrypt(encryptedMajor, key, iv);
+        std::string decryptedAge = decrypt(encryptedAge, key, iv);
+        std::string decryptedPersNo = decrypt(encryptedPersNo, key, iv);
+
         std::cout << count << ")\n";
         std::cout << "Name: " << res->getString("name") << "\n";
-        std::cout << "Age: " << res->getString("age") << "\n";
-        std::cout << "Major: " << res->getString("major") << "\n\n";
+        std::cout << "Age: " << decryptedAge << "\n";
+        std::cout << "Major: " << decryptedMajor << "\n";
+        std::cout << "Personal No: " << decryptedPersNo << "\n\n";
 
         ++count;
     } 
@@ -193,7 +309,7 @@ void updateRecord(std::unique_ptr<sql::Connection>& con)
     std::cout << "Enter student's exact name: ";
     getline(std::cin, studName);
 
-    std::cout << "Which field would you like to update? (name/age/major): ";
+    std::cout << "Which field would you like to update? (name/age/major/personal_no): ";
     getline(std::cin, field);
 
 
@@ -205,7 +321,10 @@ void updateRecord(std::unique_ptr<sql::Connection>& con)
 
     std::unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement(updateQuery));
 
-    pstmt->setString(1, newValue);
+    // Encrypt New Value
+    std::vector<unsigned char> encryptedVal = encrypt(newValue, key, iv);
+
+    pstmt->setString(1, toHex(encryptedVal));
     pstmt->setString(2, studName);
 
     int affectedRows = pstmt->executeUpdate();
@@ -220,6 +339,10 @@ void updateRecord(std::unique_ptr<sql::Connection>& con)
     }
 
 }
+
+
+
+
 
 int main() {
 
