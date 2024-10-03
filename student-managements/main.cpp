@@ -13,9 +13,14 @@
 #include <sstream>
 #include <iomanip>
 
+#include <fstream>
+#include <cstring>
+
 #include <openssl/evp.h>
 #include <openssl/aes.h>
 #include <openssl/rand.h>
+
+#include "data_encryption.c++"
 
 
 
@@ -25,8 +30,10 @@ const std::string tabSpace(20, ' ');
 const std::string dashBar(29, '-');
 const std::string fullDashLine = tabSpace + dashBar;
 
-unsigned char key[33] = "01234567890123456789012345678901";  // 256-bit key
-unsigned char iv[17]  = "0123456789012345";  // 128-bit IV
+unsigned char key[33];
+unsigned char iv[17] ;
+
+
 
 // Print Menu functions ///
 void printMenuOption(int optionNumber, const std::string &description)
@@ -53,61 +60,6 @@ void menuInfo()
     std::cout<<tabSpace<<"Choose Option: [1/2/3/4/5]"<<std::endl;
     std::cout<<fullDashLine<<std::endl;
 };
-// Encryption Function
-std::vector<unsigned char> encrypt(const std::string& plaintext, const unsigned char* key, const unsigned char* iv) {
-    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
-    EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
-
-    std::vector<unsigned char> ciphertext(plaintext.size() + AES_BLOCK_SIZE);
-    int len;
-
-    EVP_EncryptUpdate(ctx, ciphertext.data(), &len, reinterpret_cast<const unsigned char*>(plaintext.c_str()), plaintext.size());
-    int ciphertext_len = len;
-
-    EVP_EncryptFinal_ex(ctx, ciphertext.data() + len, &len);
-    ciphertext_len += len;
-    ciphertext.resize(ciphertext_len);
-
-    EVP_CIPHER_CTX_free(ctx);
-
-    return ciphertext;
-};
-
-// Decryption Function
-std::string decrypt(const std::vector<unsigned char>& ciphertext, const unsigned char* key, const unsigned char* iv) {
-    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
-    EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
-
-    std::vector<unsigned char> plaintext(ciphertext.size());
-    int len;
-
-    EVP_DecryptUpdate(ctx, plaintext.data(), &len, ciphertext.data(), ciphertext.size());
-    int plaintext_len = len;
-
-    EVP_DecryptFinal_ex(ctx, plaintext.data() + len, &len);
-    plaintext_len += len;
-    plaintext.resize(plaintext_len);
-
-    EVP_CIPHER_CTX_free(ctx);
-
-    return std::string(plaintext.begin(), plaintext.end());
-};
-std::string toHex(const std::vector<unsigned char>& data) {
-    std::ostringstream oss;
-    for (unsigned char c : data) {
-        oss << std::hex << std::setw(2) << std::setfill('0') << (int)c;
-    }
-    return oss.str();
-}
-std::vector<unsigned char> fromHex(const std::string& hexStr) {
-    std::vector<unsigned char> bytes;
-    for (size_t i = 0; i < hexStr.length(); i += 2) {
-        std::string byteString = hexStr.substr(i, 2);
-        unsigned char byte = (unsigned char) strtol(byteString.c_str(), nullptr, 16);
-        bytes.push_back(byte);
-    }
-    return bytes;
-}
 
 // Utitlity to clear input buffer and handle invalid input
 
@@ -346,6 +298,7 @@ void updateRecord(std::unique_ptr<sql::Connection>& con)
 
 int main() {
 
+    read_key_from_pem(key, iv);
 
     try {
         // ---------Connecting to Databse ---------------
